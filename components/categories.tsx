@@ -36,9 +36,10 @@ const categories = [
 
 export function Categories() {
   return (
-    <div className="bg-white py-6">
+    <div className="bg-white py-4 md:py-6">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center space-x-8 overflow-x-auto pb-2">
+        {/* Desktop - horizontal scroll */}
+        <div className="hidden md:flex items-center space-x-8 overflow-x-auto pb-2">
           {categories.map((category, index) => (
             <div
               key={index}
@@ -50,6 +51,28 @@ export function Categories() {
               <span className="text-xs text-center leading-tight">{category.name}</span>
             </div>
           ))}
+        </div>
+
+        {/* Mobile - grid layout */}
+        <div className="md:hidden">
+          <div className="grid grid-cols-4 gap-4">
+            {categories.slice(0, 8).map((category, index) => (
+              <div
+                key={index}
+                className="flex flex-col items-center space-y-2 cursor-pointer hover:text-green-600 transition-colors"
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-green-50">
+                  <category.icon className="h-5 w-5" />
+                </div>
+                <span className="text-xs text-center leading-tight">{category.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Show more button on mobile */}
+          <div className="text-center mt-4">
+            <button className="text-green-600 text-sm font-medium">Показать все категории</button>
+          </div>
         </div>
       </div>
     </div>

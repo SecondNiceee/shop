@@ -50,28 +50,30 @@ export function HeroBanner() {
   const slide = slides[currentSlide]
 
   return (
-    <div className={`bg-gradient-to-r ${slide.bgColor} py-12 relative overflow-hidden`}>
+    <div className={`bg-gradient-to-r ${slide.bgColor} py-8 md:py-12 relative overflow-hidden`}>
       <div className="max-w-7xl mx-auto px-4 relative">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between min-h-[150px] md:min-h-[200px]">
+          {/* Navigation buttons - hidden on mobile */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30"
+            className="hidden md:flex absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30"
             onClick={prevSlide}
           >
             <ChevronLeft className="h-6 w-6" />
           </Button>
 
-          <div className="flex-1 text-center">
-            <h2 className="text-3xl font-bold text-gray-800 mb-2">{slide.title}</h2>
+          <div className="flex-1 text-center px-4 md:px-0">
+            <h2 className="text-xl md:text-3xl font-bold text-gray-800 mb-2">{slide.title}</h2>
             <div className="space-y-1">
-              <div className="text-2xl font-bold text-red-600">{slide.subtitle1}</div>
-              <div className="text-2xl font-bold text-yellow-600">{slide.subtitle2}</div>
+              <div className="text-lg md:text-2xl font-bold text-red-600">{slide.subtitle1}</div>
+              <div className="text-lg md:text-2xl font-bold text-yellow-600">{slide.subtitle2}</div>
             </div>
           </div>
 
+          {/* Background image - adjusted for mobile */}
           <div
-            className="absolute right-0 top-0 h-full w-1/2 bg-contain bg-no-repeat bg-right transition-all duration-500"
+            className="absolute right-0 top-0 h-full w-1/3 md:w-1/2 bg-contain bg-no-repeat bg-right transition-all duration-500 opacity-60 md:opacity-80"
             style={{
               backgroundImage: `url(${slide.image})`,
             }}
@@ -80,13 +82,14 @@ export function HeroBanner() {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30"
+            className="hidden md:flex absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30"
             onClick={nextSlide}
           >
             <ChevronRight className="h-6 w-6" />
           </Button>
         </div>
 
+        {/* Indicators */}
         <div className="flex justify-center mt-4 space-x-2">
           {slides.map((_, index) => (
             <button
@@ -97,6 +100,18 @@ export function HeroBanner() {
               }`}
             />
           ))}
+        </div>
+
+        {/* Mobile navigation buttons */}
+        <div className="flex md:hidden justify-between mt-4">
+          <Button variant="ghost" size="sm" className="bg-white/20 hover:bg-white/30" onClick={prevSlide}>
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Назад
+          </Button>
+          <Button variant="ghost" size="sm" className="bg-white/20 hover:bg-white/30" onClick={nextSlide}>
+            Далее
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       </div>
     </div>

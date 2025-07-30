@@ -2,68 +2,81 @@
 
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { payloadClient } from "../lib/payload-client"
-import type { User } from "../types/payload"
+import { request } from "../shared/utils/request"
+import type { User } from "../payload-types"
+
+interface RequestError extends Error {
+  status?: number
+  message: string
+}
 
 export type AuthState = "login" | "register" | "authenticated" | "loading"
 
-interface AuthStore {
+interface UserStore {
   user: User | null
   authState: AuthState
   isLoading: boolean
+  error: RequestError | null
   showAuthModal: boolean
-  error: string | null
 
   // Actions
   setUser: (user: User | null) => void
   setAuthState: (state: AuthState) => void
   setIsLoading: (loading: boolean) => void
+  setError: (error: RequestError | null) => void
   setShowAuthModal: (show: boolean) => void
-  setError: (error: string | null) => void
 
   // Auth methods
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
+  findMe: () => Promise<void>
   logout: () => Promise<void>
-  checkAuth: () => Promise<void>
-  updateProfile: (data: Partial<User>) => Promise<void>
 }
 
-export const useAuthStore = create<AuthStore>()(
+export const useUserStore = create<UserStore>()(
   persist(
     (set, get) => ({
       user: null,
       authState: "login",
       isLoading: false,
-      showAuthModal: false,
       error: null,
+      showAuthModal: false,
 
       setUser: (user) => set({ user }),
       setAuthState: (authState) => set({ authState }),
       setIsLoading: (isLoading) => set({ isLoading }),
-      setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
       setError: (error) => set({ error }),
+      setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
 
         try {
-          const response = await payloadClient.login({ email, password })
+          const result = await request({
+            method: "POST",
+            url: "/api/users/login",
+            body: { email, password },
+            credentials: true,
+          })
 
-          if (response.user) {
-            set({
-              user: response.user,
-              authState: "authenticated",
-              showAuthModal: false,
-              isLoading: false,
-            })
-          } else {
-            throw new Error("Не удалось получить данные пользователя")
-          }
-        } catch (error) {
+          console.log("Login result:", result)
+
           set({
-            error: error instanceof Error ? error.message : "Ошибка авторизации",
+            user: result.user,
+            authState: "authenticated",
+            showAuthModal: false,
             isLoading: false,
+            error: null,
+          })
+        } catch (e) {
+          const error = e as RequestError
+          set({
+            isLoading: false,
+            error: {
+              message: error.message || "Ошибка авторизации",
+              name: error.name || "LoginError",
+              status: error.status || 400,
+            },
           })
           throw error
         }
@@ -73,40 +86,78 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null })
 
         try {
-          const response = await payloadClient.register({
-            name,
-            email,
-            password,
-            passwordConfirm: password,
+          const result = await request({
+            method: "POST",
+            url: "/api/users",
+            body: { name, email, password },
+            credentials: true,
           })
 
-          if (response.user) {
-            set({
-              user: response.user,
-              authState: "authenticated",
-              showAuthModal: false,
-              isLoading: false,
-            })
-          } else {
-            throw new Error("Не удалось создать аккаунт")
-          }
-        } catch (error) {
+          console.log("Register result:", result)
+
           set({
-            error: error instanceof Error ? error.message : "Ошибка регистрации",
+            user: result.user || result,
+            authState: "authenticated",
+            showAuthModal: false,
             isLoading: false,
+            error: null,
+          })
+        } catch (e) {
+          const error = e as RequestError
+          set({
+            isLoading: false,
+            error: {
+              message: error.message || "Ошибка регистрации",
+              name: error.name || "RegisterError",
+              status: error.status || 400,
+            },
+          })
+          throw error
+        }
+      },
+
+      findMe: async () => {
+        set({ isLoading: true, error: null })
+
+        try {
+          const result = await request({
+            method: "GET",
+            url: "/api/users/me",
+            credentials: true,
+          })
+
+          set({
+            user: result.user,
+            authState: "authenticated",
+            isLoading: false,
+            error: null,
+          })
+        } catch (e) {
+          const error = e as RequestError
+          set({
+            user: null,
+            authState: "login",
+            isLoading: false,
+            error: {
+              message: error.message || "Пользователь не авторизован",
+              name: error.name || "NotAuthorized",
+              status: error.status || 401,
+            },
           })
           throw error
         }
       },
 
       logout: async () => {
-        set({ isLoading: true })
+        set({ isLoading: true, error: null })
 
         try {
-          await payloadClient.logout()
-        } catch (error) {
-          console.error("Ошибка при выходе:", error)
-        } finally {
+          await request({
+            method: "POST",
+            url: "/api/users/logout",
+            credentials: true,
+          })
+
           set({
             user: null,
             authState: "login",
@@ -114,59 +165,19 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           })
-        }
-      },
-
-      checkAuth: async () => {
-        if (!payloadClient.hasToken()) {
-          set({ user: null, authState: "login" })
-          return
-        }
-
-        set({ isLoading: true })
-
-        try {
-          const user = await payloadClient.getCurrentUser()
-
-          if (user) {
-            set({
-              user,
-              authState: "authenticated",
-              isLoading: false,
-            })
-          } else {
-            set({
-              user: null,
-              authState: "login",
-              isLoading: false,
-            })
-          }
-        } catch (error) {
-          console.error("Ошибка проверки авторизации:", error)
+        } catch (e) {
+          const error = e as RequestError
+          // Даже если logout не удался на сервере, очищаем локальное состояние
           set({
             user: null,
             authState: "login",
+            showAuthModal: false,
             isLoading: false,
-          })
-        }
-      },
-
-      updateProfile: async (data: Partial<User>) => {
-        const { user } = get()
-        if (!user) throw new Error("Пользователь не авторизован")
-
-        set({ isLoading: true, error: null })
-
-        try {
-          const updatedUser = await payloadClient.updateProfile(user.id, data)
-          set({
-            user: updatedUser,
-            isLoading: false,
-          })
-        } catch (error) {
-          set({
-            error: error instanceof Error ? error.message : "Ошибка обновления профиля",
-            isLoading: false,
+            error: {
+              message: error.message || "Ошибка при выходе",
+              name: error.name || "LogoutError",
+              status: error.status || 500,
+            },
           })
           throw error
         }
