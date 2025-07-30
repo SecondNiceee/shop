@@ -5,25 +5,29 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { useUserStore } from "../store/auth-store"
-import { useState } from "react"
+import { useState, useCallback } from "react"
 
 export function Header() {
   const { user, logout, setShowAuthModal } = useUserStore()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
-  const handleUserClick = () => {
+  const handleUserClick = useCallback(() => {
     if (!user) {
       setShowAuthModal(true)
     }
-  }
+  }, [user, setShowAuthModal])
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await logout()
     } catch (error) {
       console.error("Logout error:", error)
     }
-  }
+  }, [logout])
+
+  const toggleMenu = useCallback(() => {
+    setIsMenuOpen((prev) => !prev)
+  }, [])
 
   return (
     <header>
@@ -124,7 +128,7 @@ export function Header() {
                   )}
                 </Button>
 
-                <Button variant="ghost" size="sm" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                <Button variant="ghost" size="sm" onClick={toggleMenu}>
                   <Menu className="h-5 w-5" />
                 </Button>
               </div>

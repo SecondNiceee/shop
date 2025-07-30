@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useCallback } from "react"
 import { useUserStore } from "../store/auth-store"
 import { useCart } from "../hooks/useCart"
 import { AuthModal } from "../components/auth-modal"
@@ -15,19 +15,20 @@ export default function EcomarketApp() {
   const { user, showAuthModal, findMe } = useUserStore()
   const { addToCart, getTotalItems } = useCart()
 
+  // Используем useCallback для оптимизации в React 19
+  const checkAuth = useCallback(async () => {
+    try {
+      await findMe()
+    } catch (error) {
+      // Пользователь не авторизован, это нормально
+      console.log("User not authenticated")
+    }
+  }, [findMe])
+
   // Проверяем авторизацию при загрузке приложения
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await findMe()
-      } catch (error) {
-        // Пользователь не авторизован, это нормально
-        console.log("User not authenticated")
-      }
-    }
-
     checkAuth()
-  }, [findMe])
+  }, [checkAuth])
 
   return (
     <div className="min-h-screen bg-gray-50">
